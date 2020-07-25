@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">リアルチャット</string>
+
+    <string name="navigation_drawer_open">ナビゲーションを開く</string>
+    <string name="navigation_drawer_close">ナビゲーションを閉じる</string>
+
+    <string name="action_settings">設定</string>
+
+    <!--メニューのタイトル -->
+    <string name="nav_title_invite">招待</string>
+    <string name="nav_title_sign_out">サインアウト</string>
+
+
+    <!--Toast -->
+    <string name="google_sign_in_failed">サインインに失敗しました。</string>
+    <string name="firebase_auth_failed">認証に失敗しました。</string>
+    <string name="google_service_error">Google Play Servicesへの接続に失敗しました。</string>
+    <string name="invitation_sent_error">招待に失敗しました。</string>
+    <string name="invitation_sent_success">$1%s人に招待メールを送りました。</string>
+    <string name="connection_failed">接続に失敗しました。</string>
+    <string name="get_image_failed">画像が取得できませんでした。</string>
+    <string name="db_write_error">書き込みができませんでした。</string>
+    <string name="image_upload_error">画像のアップロードができませんでした。</string>
+
+    <!-- 通知-->
+    <string name="notification_ticker">新規チャットメッセージがあります!!</string>
+
+    <!--App Invite -->
+    <string name="app_invite_title">「リアルタイムチャット」に招待する</string>
+    <string name="app_invite_message">「リアルタイムチャット」に参加しませんか</string>
+    <string name="app_invite_call_to_action">「リアルタイムチャット」に参加しませんか</string>
+
+</resources>

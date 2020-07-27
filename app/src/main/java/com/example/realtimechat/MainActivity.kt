@@ -2,8 +2,8 @@ package com.example.realtimechat
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.Menu
 import android.view.MenuItem
+import android.widget.TextView
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
@@ -37,6 +37,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun logInCheck() {
 
         firebaseUser = FirebaseAuth.getInstance().currentUser
+
         // ログインしていない場合
         if (firebaseUser == null){
             startActivity(Intent(this, SignActivity::class.java))
@@ -44,8 +45,16 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             return
         }
 
-        // TODO: ログインしている場合
+        // ログインしている場合
+        setUserProfiles(firebaseUser!!)
+    }
 
+    private fun setUserProfiles(firebaseUser: FirebaseUser) {
+        val nav_header = nav_view.getHeaderView(0)
+        val textUserName = nav_header.findViewById<TextView>(R.id.text_user_name)
+        val textUserId = nav_header.findViewById<TextView>(R.id.text_user_id)
+        textUserName.text = firebaseUser.displayName
+        textUserId.text = firebaseUser.email
     }
 
     override fun onBackPressed() {
@@ -55,7 +64,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             super.onBackPressed()
         }
     }
-
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {

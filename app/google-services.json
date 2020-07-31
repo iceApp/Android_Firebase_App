@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "588510594833-v5tab96aa89fr68jdekrd03275qepvka.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.realtimechat",
+            "certificate_hash": "d606f7672b9948b4f94bc0b2d919711f8a42c7e1"
+          }
+        },
+        {
           "client_id": "588510594833-d2gj4qi6g6laeddrqp8r1leamscf6smj.apps.googleusercontent.com",
           "client_type": 3
         }

@@ -9,6 +9,9 @@ import android.widget.TextView
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -20,6 +23,19 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     var firebaseAuth: FirebaseAuth? = null
     var firebaseUser: FirebaseUser? = null
+
+    // GoogleSignInClient の生成
+    private val googleSignInClient: GoogleSignInClient by lazy {
+        GoogleSignIn.getClient(this, gso)
+    }
+
+    // GoogleSignInClient のオプション、今回は特に設定が必要ないのでデフォルト値的なものを利用する
+    private val gso: GoogleSignInOptions by lazy {
+        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,12 +94,24 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 sendInvitation()
             }
             R.id.nav_menu_sign_out -> {
-
+                signOut()
             }
         }
 
         drawer_layout.closeDrawer(GravityCompat.START)
         return true
+    }
+
+    private fun signOut() {
+        FirebaseAuth.getInstance().signOut()
+        googleSignInClient.signOut().addOnCompleteListener { task ->
+            if (task.isSuccessful){
+                startActivity(Intent(this, SignActivity::class.java))
+                finish()
+                return@addOnCompleteListener
+            }
+
+        }
     }
 
     private fun sendInvitation(){

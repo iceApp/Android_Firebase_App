@@ -21,7 +21,6 @@ import kotlinx.android.synthetic.main.activity_singn.*
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
-    var firebaseAuth: FirebaseAuth? = null
     var firebaseUser: FirebaseUser? = null
 
     // GoogleSignInClient の生成
@@ -50,7 +49,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         nav_view.setNavigationItemSelectedListener(this)
 
         logInCheck()
-
     }
 
     private fun logInCheck() {
@@ -69,13 +67,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         // 招待者とのチャットへ
         receiveInvitation()
-
     }
 
     private fun setUserProfiles(firebaseUser: FirebaseUser) {
-        val nav_header = nav_view.getHeaderView(0)
-        val textUserName = nav_header.findViewById<TextView>(R.id.text_user_name)
-        val textUserId = nav_header.findViewById<TextView>(R.id.text_user_id)
+        val navHeader = nav_view.getHeaderView(0)
+        val textUserName = navHeader.findViewById<TextView>(R.id.text_user_name)
+        val textUserId = navHeader.findViewById<TextView>(R.id.text_user_id)
         textUserName.text = firebaseUser.displayName
         textUserId.text = firebaseUser.email
     }
@@ -110,7 +107,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 finish()
                 return@addOnCompleteListener
             }
-
         }
     }
 

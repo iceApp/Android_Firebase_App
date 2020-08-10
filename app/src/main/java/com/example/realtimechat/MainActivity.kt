@@ -1,11 +1,17 @@
 package com.example.realtimechat
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.MenuItem
+import android.view.MotionEvent
+import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
+import android.widget.Toast.LENGTH_SHORT
+import android.widget.Toast.makeText
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
@@ -16,12 +22,17 @@ import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.dynamiclinks.FirebaseDynamicLinks
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_singn.*
+import kotlinx.android.synthetic.main.content_main.*
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
-    var firebaseUser: FirebaseUser? = null
+    private var firebaseUser: FirebaseUser? = null
+
+    var userName: String = ""
+    var userPhotoUrl: String = ""
 
     // GoogleSignInClient の生成
     private val googleSignInClient: GoogleSignInClient by lazy {
@@ -36,6 +47,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             .build()
     }
 
+    private val db: FirebaseFirestore by lazy {
+        FirebaseFirestore.getInstance()
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -49,6 +65,49 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         nav_view.setNavigationItemSelectedListener(this)
 
         logInCheck()
+
+        btnSendMessage.setOnClickListener {
+            postMessage()
+        }
+
+
+        // 画面タッチでキーボードを閉じる
+        drawer_layout?.setOnTouchListener { v, event ->
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                /* Fragmentのレイアウトがタッチされた時に、Fragment全体ににフォーカスを移す */
+                drawer_layout?.requestFocus()
+            }
+            v?.onTouchEvent(event) ?: true
+        }
+
+        // 入力欄からフォーカスが外れたタイミングでキーボードを閉じる
+        inputMessage.setOnFocusChangeListener { view, hasFocus ->
+            Log.d(TAG, "hasFocus : $hasFocus")
+            if (!hasFocus) {
+                val inputManager = this?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                inputManager.hideSoftInputFromWindow(view.windowToken, InputMethodManager.HIDE_NOT_ALWAYS)
+            }
+        }
+
+
+    private fun postMessage() {
+        val model = MessageItem(userName, userPhotoUrl, inputMessage.text.toString())
+        /* ボタンクリックのタイミングでFragmentにフォーカスを移すことによって、キーボードを閉じる */
+        drawer_layout.requestFocus()
+        db.collection("rooms")
+            .document(userName)
+            .collection("my_chat_rooms")
+            .document()
+            .set(model)
+            .addOnCompleteListener {
+            }
+            .addOnSuccessListener {
+                inputMessage.text.clear()
+                makeText(applicationContext, "送信完了", LENGTH_SHORT)
+            }
+            .addOnFailureListener {
+                makeText(applicationContext, "送信失敗", LENGTH_SHORT)
+            }
     }
 
     private fun logInCheck() {
@@ -62,19 +121,23 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             return
         }
 
-        // ログインしている場合
+        // アカウント情報参照
         setUserProfiles(firebaseUser!!)
 
         // 招待者とのチャットへ
         receiveInvitation()
     }
 
+    // ログインアカウントをナビヘッダーに情報表示
     private fun setUserProfiles(firebaseUser: FirebaseUser) {
         val navHeader = nav_view.getHeaderView(0)
         val textUserName = navHeader.findViewById<TextView>(R.id.text_user_name)
         val textUserId = navHeader.findViewById<TextView>(R.id.text_user_id)
         textUserName.text = firebaseUser.displayName
         textUserId.text = firebaseUser.email
+
+        userName = firebaseUser.displayName!!
+        userPhotoUrl = firebaseUser.photoUrl.toString()
     }
 
     override fun onBackPressed() {
@@ -110,6 +173,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
+    //　招待ボタン
     private fun sendInvitation(){
         val link = generateContentLink()
 
@@ -120,6 +184,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         startActivity(Intent.createChooser(intent, "Share Link"))
     }
 
+    //　招待用Dynamic Link作成
     private fun generateContentLink(): Uri {
         // このアプリ自体の公式サイトURLなどあれば指定　Firebaseコンソールで指定していれば不要
         val baseUrl = Uri.parse("")
@@ -138,6 +203,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         return link.uri
     }
 
+    // 招待リンク受け取り
     private fun receiveInvitation(){
         // TODO: 招待URLから開いた場合、招待者とのチャットを開く
         FirebaseDynamicLinks.getInstance()

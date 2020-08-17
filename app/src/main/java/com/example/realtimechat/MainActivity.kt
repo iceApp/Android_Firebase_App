@@ -1,6 +1,6 @@
 package com.example.realtimechat
 
-import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -23,12 +23,15 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.dynamiclinks.FirebaseDynamicLinks
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageReference
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_singn.*
 import kotlinx.android.synthetic.main.content_main.*
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
+    // ログインユーザー
     private var firebaseUser: FirebaseUser? = null
 
     var userName: String = ""
@@ -51,7 +54,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         FirebaseFirestore.getInstance()
     }
 
-    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -89,6 +91,80 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
         }
 
+        // 画像送付ボタン
+        btnAddPhoto.setOnClickListener {
+            postImage()
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        when(requestCode){
+            //画像フォルダ参照後
+            REQUEST_GET_IMAGE -> { getImageResult(resultCode, data) }
+        }
+    }
+
+    // 画像パスをfirestoreとstorageで結合
+    private fun getImageResult(resultCode: Int, data: Intent?) {
+        if (resultCode != Activity.RESULT_OK){
+            makeToast(this, getString(R.string.get_image_failed))
+            return
+        }
+
+        if (data == null) return
+        val uriFromDevice = data.data
+
+        // firestoreの画像保存パス作成
+        val tempMessage = MessageItem(userName, userPhotoUrl, "", "")
+        val refId = db.collection("rooms")
+            .document(userName)
+            .collection("my_chat_rooms")
+            .document()
+
+        //　storageのファイル保存パス作成
+        val storageRef = uriFromDevice?.lastPathSegment?.let {
+            FirebaseStorage.getInstance().getReference(firebaseUser!!.uid)
+                .child(refId.id).child(it)
+        }
+
+        // 画像をstorageにアップ
+        putImageStorage(storageRef, uriFromDevice, refId.id)
+    }
+
+    // 画像をfirestoreに送信
+    private fun putImageStorage(storageRef: StorageReference?, uriFromDevice: Uri?, refId: String) {
+        storageRef!!.putFile(uriFromDevice!!).addOnCompleteListener { task ->
+            val chatMessage = MessageItem(userName, userPhotoUrl, "", task.result?.uploadSessionUri.toString())
+            db.collection("rooms")
+                .document(userName)
+                .collection("my_chat_rooms")
+                .document(refId)
+                .set(chatMessage)
+                .addOnCompleteListener {
+                }
+                .addOnSuccessListener {
+                    inputMessage.text.clear()
+                    makeToast(applicationContext, "送信完了")
+                }
+                .addOnFailureListener {
+                    makeToast(applicationContext, "送信失敗")
+                }
+        }
+        .addOnFailureListener {
+            makeToast(this, getString(R.string.image_upload_error))
+        }
+    }
+
+    // デバイスの画像フォルダ参照
+    private fun postImage() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "image/*"
+        }
+        startActivityForResult(intent, REQUEST_GET_IMAGE)
+    }
 
     private fun postMessage() {
         val model = MessageItem(userName, userPhotoUrl, inputMessage.text.toString())
@@ -103,10 +179,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
             .addOnSuccessListener {
                 inputMessage.text.clear()
-                makeText(applicationContext, "送信完了", LENGTH_SHORT)
+                makeToast(applicationContext, "送信完了")
             }
             .addOnFailureListener {
-                makeText(applicationContext, "送信失敗", LENGTH_SHORT)
+                makeToast(applicationContext, "送信失敗")
             }
     }
 

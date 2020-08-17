@@ -10,8 +10,6 @@ import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
-import android.widget.Toast.LENGTH_SHORT
-import android.widget.Toast.makeText
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
@@ -166,6 +164,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         startActivityForResult(intent, REQUEST_GET_IMAGE)
     }
 
+    // メッセージをstoreに送信
     private fun postMessage() {
         val model = MessageItem(userName, userPhotoUrl, inputMessage.text.toString())
         /* ボタンクリックのタイミングでFragmentにフォーカスを移すことによって、キーボードを閉じる */
@@ -186,6 +185,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
     }
 
+    // ログイン済みかチェック
     private fun logInCheck() {
 
         firebaseUser = FirebaseAuth.getInstance().currentUser
@@ -238,6 +238,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         return true
     }
 
+    // ログアウト
     private fun signOut() {
         FirebaseAuth.getInstance().signOut()
         googleSignInClient.signOut().addOnCompleteListener { task ->

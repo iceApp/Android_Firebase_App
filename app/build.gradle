@@ -55,7 +55,6 @@ dependencies {
     implementation 'androidx.navigation:navigation-fragment-ktx:2.3.0'
     implementation 'androidx.navigation:navigation-ui-ktx:2.3.0'
     implementation 'com.google.firebase:firebase-auth:19.3.2'
-    implementation 'com.google.firebase:firebase-dynamic-links:19.1.0'
     implementation 'com.google.firebase:firebase-firestore:21.5.0'
     implementation 'com.google.firebase:firebase-storage:19.1.1'
     testImplementation 'junit:junit:4.13'
@@ -67,6 +66,9 @@ dependencies {
 
     // Google Id Auth
     implementation 'com.google.android.gms:play-services-auth:18.1.0'
+
+    // Dynamic Links
+    implementation 'com.google.firebase:firebase-dynamic-links-ktx:19.1.0'
 
     // Firebase analytics
     implementation 'com.google.firebase:firebase-analytics-ktx:17.4.4'

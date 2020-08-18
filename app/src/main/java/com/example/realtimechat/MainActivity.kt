@@ -19,8 +19,13 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.dynamiclinks.DynamicLink
 import com.google.firebase.dynamiclinks.FirebaseDynamicLinks
+import com.google.firebase.dynamiclinks.ktx.androidParameters
+import com.google.firebase.dynamiclinks.ktx.dynamicLink
+import com.google.firebase.dynamiclinks.ktx.dynamicLinks
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
 import kotlinx.android.synthetic.main.activity_main.*
@@ -84,7 +89,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         inputMessage.setOnFocusChangeListener { view, hasFocus ->
             Log.d(TAG, "hasFocus : $hasFocus")
             if (!hasFocus) {
-                val inputManager = this?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                val inputManager = this.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
                 inputManager.hideSoftInputFromWindow(view.windowToken, InputMethodManager.HIDE_NOT_ALWAYS)
             }
         }
@@ -252,32 +257,28 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     //　招待ボタン
     private fun sendInvitation(){
-        val link = generateContentLink()
+        val dynamicLink = generateContentLink()
 
-        val intent = Intent(Intent.ACTION_SEND)
-        intent.type = "text/plain"
-        intent.putExtra(Intent.EXTRA_TEXT, link.toString())
-
-        startActivity(Intent.createChooser(intent, "Share Link"))
+        val intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, getString(R.string.app_invite_message) + " " + dynamicLink.uri.toString())
+            type = "text/plain"
+        }
+        startActivity(Intent.createChooser(intent, getString(R.string.app_invite_title)))
     }
 
     //　招待用Dynamic Link作成
-    private fun generateContentLink(): Uri {
-        // このアプリ自体の公式サイトURLなどあれば指定　Firebaseコンソールで指定していれば不要
-        val baseUrl = Uri.parse("")
-        //　シェアするURL(Firebaseコンソールで作ったショートURLを使う)
-        val domain = "https://realtimechat001.page.link/PZXe"
-
-        val link = FirebaseDynamicLinks.getInstance()
-            .createDynamicLink()
-            .setLink(baseUrl)
-            .setDomainUriPrefix(domain)
-                //招待する当アプリ名の指定。Firebaseコンソールで指定していれば不要
-//            .setIosParameters(DynamicLink.IosParameters.Builder("com.example.bundleid").build())
-//            .setAndroidParameters(DynamicLink.AndroidParameters.Builder("com.example.realtimechat").build())
-            .buildDynamicLink()
-
-        return link.uri
+    private fun generateContentLink(): DynamicLink {
+        return Firebase.dynamicLinks.dynamicLink {
+            link = Uri.parse("https://play.google.com/store/apps/details?id=com.example.realtimechat/") // アプリ公式サイトなど
+            domainUriPrefix = "https://realtimechat001.page.link" //コンソールで設定したDynamicLink用独自ドメイン
+            androidParameters("com.example.realtimechat") {
+                fallbackUrl =
+                    Uri.parse("https://play.google.com/store/apps/details?id=com.example.realtimechat") // Play storeのアプリURL
+            }
+//            iosParameters("com.example.bundleid") {
+//            }
+        }
     }
 
     // 招待リンク受け取り

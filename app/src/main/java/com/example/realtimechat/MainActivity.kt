@@ -6,13 +6,18 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import android.view.MenuItem
-import android.view.MotionEvent
+import android.view.*
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.bumptech.glide.Glide.with
+import com.bumptech.glide.request.RequestOptions
+import com.firebase.ui.firestore.FirestoreRecyclerAdapter
+import com.firebase.ui.firestore.FirestoreRecyclerOptions
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -25,9 +30,11 @@ import com.google.firebase.dynamiclinks.ktx.androidParameters
 import com.google.firebase.dynamiclinks.ktx.dynamicLink
 import com.google.firebase.dynamiclinks.ktx.dynamicLinks
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
+import com.google.firebase.storage.ktx.storage
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_singn.*
 import kotlinx.android.synthetic.main.content_main.*
@@ -36,6 +43,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     // ログインユーザー
     private var firebaseUser: FirebaseUser? = null
+
+    var layoutManager: LinearLayoutManager? = null
+    lateinit var firebaseAdapter: FirestoreRecyclerAdapter<MessageItem, MessageHolder>
 
     var userName: String = ""
     var userPhotoUrl: String = ""
@@ -100,6 +110,115 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
+    //　チャット履歴を表示
+    private fun displayChatData() {
+        layoutManager = LinearLayoutManager(this)
+        layoutManager!!.stackFromEnd = true
+        chatList.layoutManager = layoutManager
+
+        val query = db.collection("rooms")
+            .document(userName)
+            .collection("my_chat_rooms").orderBy(
+                MessageItem::registerTime.name,
+                Query.Direction.ASCENDING
+            )
+            .limit(20)
+
+        // Firebase UIに入れる
+        val options = FirestoreRecyclerOptions.Builder<MessageItem>()
+            .setQuery(query, MessageItem::class.java)
+            .build()
+
+        firebaseAdapter = object : FirestoreRecyclerAdapter<MessageItem, MessageHolder>(options) {
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MessageHolder {
+
+                val view =
+                    LayoutInflater.from(parent.context).inflate(
+                        R.layout.chat_content,
+                        parent,
+                        false
+                    )
+                return MessageHolder(view)
+            }
+
+            override fun onBindViewHolder(holder: MessageHolder, position: Int, model: MessageItem) {
+                setUserContents(holder, model)
+                setChatContents(holder, model)
+            }
+        }
+        chatList.adapter = firebaseAdapter
+    }
+
+    //　チャットのユーザー情報表示
+    private fun setUserContents(holder: MessageHolder, model: MessageItem) {
+        holder.text_user_name.text = model.userName
+        if (model.userPhotoUrl != ""){
+            with(this).load(model.userPhotoUrl)
+                .into(holder.image_user)
+            return
+        }
+        holder.image_user.setImageDrawable(
+            ContextCompat.getDrawable(
+                this,
+                R.drawable.ic_baseline_account_circle_24
+            )
+        )
+    }
+
+    // チャットの投稿した文章と画像を表示
+    private fun setChatContents(holder: MessageHolder, model: MessageItem) {
+        // 投稿文章
+        if (model.postedMessage != "") {
+            holder.apply {
+                text_posted.text = model.postedMessage
+                text_posted.visibility = View.VISIBLE
+                image_posted.visibility = View.GONE
+            }
+            return
+        }
+
+        // 投稿画像
+        setPostImageContent(holder, model)
+    }
+
+    private fun setPostImageContent(holder: MessageHolder, model: MessageItem) {
+
+        val imageUrl = model.postedImageUrl
+        holder.apply {
+            image_posted.visibility = View.VISIBLE
+            text_posted.visibility = View.VISIBLE
+        }
+
+        // 画像のURLがStorage以外の場合
+        if (!imageUrl.startsWith("gs://")) {
+            GlideApp.with(holder.image_posted.context)
+                .load(imageUrl)
+                .into(holder.image_posted)
+            return
+        }
+
+        val storageRef = Firebase.storage.getReferenceFromUrl(imageUrl)
+
+        GlideApp.with(holder.image_posted.context)
+            .applyDefaultRequestOptions(
+                RequestOptions()
+                    .placeholder(R.drawable.ic_sharp_image_loading_error_24)
+                    .error(R.drawable.ic_sharp_image_loading_error_24)
+            )
+            .load(storageRef)
+            .into(holder.image_posted)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        firebaseAdapter.startListening()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        firebaseAdapter.stopListening()
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
@@ -126,25 +245,39 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             .collection("my_chat_rooms")
             .document()
 
-        //　storageのファイル保存パス作成
-        val storageRef = uriFromDevice?.lastPathSegment?.let {
-            FirebaseStorage.getInstance().getReference(firebaseUser!!.uid)
-                .child(refId.id).child(it)
-        }
+        val imageFileName = System.currentTimeMillis().toString()
+
+        //　storageのディレクトリパス作成
+        val storageRef = FirebaseStorage.getInstance().getReference(firebaseUser!!.uid)
+                .child(refId.id).child(imageFileName)
 
         // 画像をstorageにアップ
         putImageStorage(storageRef, uriFromDevice, refId.id)
     }
 
-    // 画像をfirestoreに送信
+    // 画像をstorageに、画像パスをfirestoreに送信
     private fun putImageStorage(storageRef: StorageReference?, uriFromDevice: Uri?, refId: String) {
+
+        // 画像をstorageに送信
         storageRef!!.putFile(uriFromDevice!!).addOnCompleteListener { task ->
-            val chatMessage = MessageItem(userName, userPhotoUrl, "", task.result?.uploadSessionUri.toString())
+
+            //　storeに送信する画像パス
+            val gsReference = task.result?.storage.toString()
+
+            //　storeに画像パスを送信
+            val chatMessage =
+                MessageItem(
+                    userName,
+                    userPhotoUrl,
+                    "",
+                    gsReference
+                )
+
             db.collection("rooms")
                 .document(userName)
                 .collection("my_chat_rooms")
                 .document(refId)
-                .set(chatMessage)
+                .set(chatMessage!!)
                 .addOnCompleteListener {
                 }
                 .addOnSuccessListener {
@@ -172,6 +305,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     // メッセージをstoreに送信
     private fun postMessage() {
         val model = MessageItem(userName, userPhotoUrl, inputMessage.text.toString())
+        if(model.postedMessage == "" ) return
+
         /* ボタンクリックのタイミングでFragmentにフォーカスを移すことによって、キーボードを閉じる */
         drawer_layout.requestFocus()
         db.collection("rooms")
@@ -204,6 +339,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         // アカウント情報参照
         setUserProfiles(firebaseUser!!)
+        displayChatData()
 
         // 招待者とのチャットへ
         receiveInvitation()
@@ -261,7 +397,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         val intent = Intent().apply {
             action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, getString(R.string.app_invite_message) + " " + dynamicLink.uri.toString())
+            putExtra(
+                Intent.EXTRA_TEXT,
+                getString(R.string.app_invite_message) + " " + dynamicLink.uri.toString()
+            )
             type = "text/plain"
         }
         startActivity(Intent.createChooser(intent, getString(R.string.app_invite_title)))
@@ -301,7 +440,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
                 // ...
             }
-            .addOnFailureListener(this) { e -> Log.w("receiveInvitation", "getDynamicLink:onFailure", e) }
+            .addOnFailureListener(this) { e -> Log.w(
+                "receiveInvitation",
+                "getDynamicLink:onFailure",
+                e
+            ) }
     }
 
 }

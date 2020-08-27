@@ -73,7 +73,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         setSupportActionBar(toolbar)
 
         val toggle = ActionBarDrawerToggle(
-                this, drawer_layout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close)
+            this,
+            drawer_layout,
+            toolbar,
+            R.string.navigation_drawer_open,
+            R.string.navigation_drawer_close
+        )
         drawer_layout.addDrawerListener(toggle)
         toggle.syncState()
 
@@ -100,7 +105,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             Log.d(TAG, "hasFocus : $hasFocus")
             if (!hasFocus) {
                 val inputManager = this.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                inputManager.hideSoftInputFromWindow(view.windowToken, InputMethodManager.HIDE_NOT_ALWAYS)
+                inputManager.hideSoftInputFromWindow(
+                    view.windowToken,
+                    InputMethodManager.HIDE_NOT_ALWAYS
+                )
             }
         }
 
@@ -224,7 +232,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         when(requestCode){
             //画像フォルダ参照後
-            REQUEST_GET_IMAGE -> { getImageResult(resultCode, data) }
+            REQUEST_GET_IMAGE -> {
+                getImageResult(resultCode, data)
+            }
         }
     }
 

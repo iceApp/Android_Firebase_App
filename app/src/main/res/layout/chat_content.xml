@@ -9,10 +9,10 @@
         android:id="@+id/card_chat"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:cardBackgroundColor="@color/colorPrimaryLight"
+        app:cardCornerRadius="@dimen/cardview_radius"
         app:cardElevation="@dimen/cardview_default_elevation"
         app:cardUseCompatPadding="true"
-        app:contentPadding="@dimen/cardview_default_radius">
+        app:contentPadding="8dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -23,6 +23,7 @@
                 android:id="@+id/image_user"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
+                android:paddingEnd="8dp"
                 app:srcCompat="@drawable/ic_baseline_account_circle_24" />
 
             <LinearLayout
@@ -31,9 +32,17 @@
                 android:orientation="vertical">
 
                 <TextView
+                    android:id="@+id/text_user_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingBottom="8dp"
+                    android:textSize="10sp" />
+
+                <TextView
                     android:id="@+id/text_posted"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:paddingStart="8dp"
                     android:textSize="18sp" />
 
                 <ImageView
@@ -41,13 +50,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:adjustViewBounds="true"
+                    android:contentDescription="TODO"
                     android:scaleType="fitCenter" />
 
-                <TextView
-                    android:id="@+id/text_user_name"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="8sp" />
             </LinearLayout>
 
         </LinearLayout>

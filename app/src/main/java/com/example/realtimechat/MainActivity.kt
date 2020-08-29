@@ -91,7 +91,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             postMessage()
         }
 
-
         // 画面タッチでキーボードを閉じる
         drawer_layout?.setOnTouchListener { v, event ->
             if (event.actionMasked == MotionEvent.ACTION_DOWN) {
@@ -138,6 +137,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             .setQuery(query, MessageItem::class.java)
             .build()
 
+        // RecyclerAdapterにViewとBind設定
         firebaseAdapter = object : FirestoreRecyclerAdapter<MessageItem, MessageHolder>(options) {
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MessageHolder {
 
@@ -202,6 +202,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         setPostImageContent(holder, model)
     }
 
+    // チャットリストに投稿した画像を表示
     private fun setPostImageContent(holder: MessageHolder, model: MessageItem) {
 
         val imageUrl = model.postedImageUrl
@@ -380,6 +381,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         userPhotoUrl = firebaseUser.photoUrl.toString()
     }
 
+    // バックボタンでサイドナビを閉じる
     override fun onBackPressed() {
         if (drawer_layout.isDrawerOpen(GravityCompat.START)) {
             drawer_layout.closeDrawer(GravityCompat.START)
@@ -388,6 +390,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
+    // サイドナビ内のボタン操作
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.nav_menu_invite -> {

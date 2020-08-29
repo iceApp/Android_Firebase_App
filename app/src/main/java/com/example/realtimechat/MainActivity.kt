@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide.with
 import com.bumptech.glide.request.RequestOptions
 import com.firebase.ui.firestore.FirestoreRecyclerAdapter
@@ -155,6 +156,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
         }
         chatList.adapter = firebaseAdapter
+
+        // コメント後の自動ページング
+        firebaseAdapter.registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver(){
+            override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
+                super.onItemRangeInserted(positionStart, itemCount)
+                val chatMessageCount = firebaseAdapter.itemCount
+                val lastVisiblePosition = layoutManager!!.findLastCompletelyVisibleItemPosition()
+                if (lastVisiblePosition == -1 || positionStart >= chatMessageCount -1 && lastVisiblePosition == positionStart -1) {
+                    chatList.scrollToPosition(positionStart)
+                }
+            }
+        })
     }
 
     //　チャットのユーザー情報表示

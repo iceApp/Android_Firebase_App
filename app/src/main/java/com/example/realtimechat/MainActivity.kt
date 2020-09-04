@@ -1,9 +1,10 @@
 package com.example.realtimechat
 
-import android.app.Activity
+import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.*
@@ -11,6 +12,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -30,6 +32,7 @@ import com.google.firebase.dynamiclinks.FirebaseDynamicLinks
 import com.google.firebase.dynamiclinks.ktx.androidParameters
 import com.google.firebase.dynamiclinks.ktx.dynamicLink
 import com.google.firebase.dynamiclinks.ktx.dynamicLinks
+import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.ktx.Firebase
@@ -50,6 +53,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     var userName: String = ""
     var userPhotoUrl: String = ""
+    val commonRoom: String = "通知テスト"
 
     // GoogleSignInClient の生成
     private val googleSignInClient: GoogleSignInClient by lazy {
@@ -72,6 +76,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
+
+        registerNotificationChannel()
 
         val toggle = ActionBarDrawerToggle(
             this,
@@ -118,6 +124,22 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
+    // 通知チャンネル登録
+    private fun registerNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Create the NotificationChannel
+            val name = "channel_1"
+            val descriptionText = getString(R.string.channel_description)
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val mChannel = NotificationChannel(CHANNEL_ID, name, importance)
+            mChannel.description = descriptionText
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(mChannel)
+        }
+    }
+
     //　チャット履歴を表示
     private fun displayChatData() {
         layoutManager = LinearLayoutManager(this)
@@ -125,12 +147,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         chatList.layoutManager = layoutManager
 
         val query = db.collection("rooms")
-            .document(userName)
+            .document(commonRoom)
             .collection("my_chat_rooms").orderBy(
                 MessageItem::registerTime.name,
                 Query.Direction.ASCENDING
             )
-            .limit(20)
 
         // Firebase UIに入れる
         val options = FirestoreRecyclerOptions.Builder<MessageItem>()
@@ -168,6 +189,51 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 }
             }
         })
+
+        // 他人の新しい投稿を検知して通知へ
+        db.collection("rooms")
+            .document(commonRoom)
+            .collection("my_chat_rooms")
+            .addSnapshotListener { snapshot, e ->
+
+                if (e != null) {
+                    Log.w(TAG, "listen:error", e)
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    for (dc in snapshot.documentChanges) when (dc.type) {
+                        DocumentChange.Type.ADDED -> {
+                               Log.d(TAG, "Added Data: ${dc.document.data}")
+                               val newMessage = dc.document.toObject(MessageItem::class.java)
+                               if (newMessage.userName != userName) sendNotification(newMessage)
+                        }
+                        DocumentChange.Type.MODIFIED -> Log.d(TAG, "Modified Data: ${dc.document.data}")
+                        DocumentChange.Type.REMOVED -> Log.d(TAG, "Removed Data: ${dc.document.data}")
+                    }
+                }
+            }
+    }
+
+    // 投稿通知を送信
+    private fun sendNotification(newMessage: MessageItem) {
+        val notificationId = SEND_NOTIFICATION_ID
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            REQUEST_GET_IMAGE,
+            Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val notificationBuilder = NotificationCompat.Builder(this, "channel_1")
+            .setSmallIcon(R.drawable.ic_notofication)
+            .setContentTitle(newMessage.userName)
+            .setContentText(newMessage.postedMessage)
+            .setAutoCancel(true)
+        notificationBuilder.setContentIntent(pendingIntent)
+        val notification = notificationBuilder.build()
+        notification.flags = Notification.DEFAULT_LIGHTS or Notification.FLAG_AUTO_CANCEL
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(notificationId, notification)
     }
 
     //　チャットのユーザー情報表示
@@ -264,8 +330,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         // firestoreの画像保存パス作成
         val tempMessage = MessageItem(userName, userPhotoUrl, "", "")
+
         val refId = db.collection("rooms")
-            .document(userName)
+            .document(commonRoom)
             .collection("my_chat_rooms")
             .document()
 
@@ -273,10 +340,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         //　storageのディレクトリパス作成
         val storageRef = FirebaseStorage.getInstance().getReference(firebaseUser!!.uid)
-                .child(refId.id).child(imageFileName)
+                .child(refId.toString()).child(imageFileName)
 
         // 画像をstorageにアップ
-        putImageStorage(storageRef, uriFromDevice, refId.id)
+        putImageStorage(storageRef, uriFromDevice, refId.toString())
     }
 
     // 画像をstorageに、画像パスをfirestoreに送信
@@ -298,10 +365,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 )
 
             db.collection("rooms")
-                .document(userName)
+                .document(commonRoom)
                 .collection("my_chat_rooms")
                 .document(refId)
-                .set(chatMessage!!)
+                .set(chatMessage)
                 .addOnCompleteListener {
                 }
                 .addOnSuccessListener {
@@ -333,8 +400,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         /* ボタンクリックのタイミングでFragmentにフォーカスを移すことによって、キーボードを閉じる */
         drawer_layout.requestFocus()
+
         db.collection("rooms")
-            .document(userName)
+            .document(commonRoom)
             .collection("my_chat_rooms")
             .document()
             .set(model)

@@ -27,12 +27,11 @@
 
     <!-- 通知-->
     <string name="notification_ticker">New Chat Message!!</string>
+    <string name="channel_description">new message notification view</string>
 
     <!--App Invite -->
     <string name="app_invite_title">Send Invitation for Realtime Chat</string>
     <string name="app_invite_message">Join out Realtime Chat now</string>
     <string name="app_invite_call_to_action">Join out Realtime Chat now</string>
-
-
 
 </resources>

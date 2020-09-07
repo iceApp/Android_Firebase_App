@@ -1,6 +1,8 @@
 package com.example.realtimechat
 
-import android.app.*
+import android.app.Activity
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -12,7 +14,6 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -32,7 +33,6 @@ import com.google.firebase.dynamiclinks.FirebaseDynamicLinks
 import com.google.firebase.dynamiclinks.ktx.androidParameters
 import com.google.firebase.dynamiclinks.ktx.dynamicLink
 import com.google.firebase.dynamiclinks.ktx.dynamicLinks
-import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.ktx.Firebase
@@ -190,51 +190,51 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
         })
 
-        // 他人の新しい投稿を検知して通知へ
-        db.collection("rooms")
-            .document(commonRoom)
-            .collection("my_chat_rooms")
-            .addSnapshotListener { snapshot, e ->
-
-                if (e != null) {
-                    Log.w(TAG, "listen:error", e)
-                    return@addSnapshotListener
-                }
-
-                if (snapshot != null) {
-                    for (dc in snapshot.documentChanges) when (dc.type) {
-                        DocumentChange.Type.ADDED -> {
-                               Log.d(TAG, "Added Data: ${dc.document.data}")
-                               val newMessage = dc.document.toObject(MessageItem::class.java)
-                               if (newMessage.userName != userName) sendNotification(newMessage)
-                        }
-                        DocumentChange.Type.MODIFIED -> Log.d(TAG, "Modified Data: ${dc.document.data}")
-                        DocumentChange.Type.REMOVED -> Log.d(TAG, "Removed Data: ${dc.document.data}")
-                    }
-                }
-            }
+//        // 他人の新しい投稿を検知して通知へ
+//        db.collection("rooms")
+//            .document(commonRoom)
+//            .collection("my_chat_rooms")
+//            .addSnapshotListener { snapshot, e ->
+//
+//                if (e != null) {
+//                    Log.w(TAG, "listen:error", e)
+//                    return@addSnapshotListener
+//                }
+//
+//                if (snapshot != null) {
+//                    for (dc in snapshot.documentChanges) when (dc.type) {
+//                        DocumentChange.Type.ADDED -> {
+//                               Log.d(TAG, "Added Data: ${dc.document.data}")
+//                               val newMessage = dc.document.toObject(MessageItem::class.java)
+//                               if (newMessage.userName != userName) sendNotification(newMessage)
+//                        }
+//                        DocumentChange.Type.MODIFIED -> Log.d(TAG, "Modified Data: ${dc.document.data}")
+//                        DocumentChange.Type.REMOVED -> Log.d(TAG, "Removed Data: ${dc.document.data}")
+//                    }
+//                }
+//            }
     }
 
-    // 投稿通知を送信
-    private fun sendNotification(newMessage: MessageItem) {
-        val notificationId = SEND_NOTIFICATION_ID
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            REQUEST_GET_IMAGE,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT
-        )
-        val notificationBuilder = NotificationCompat.Builder(this, "channel_1")
-            .setSmallIcon(R.drawable.ic_notofication)
-            .setContentTitle(newMessage.userName)
-            .setContentText(newMessage.postedMessage)
-            .setAutoCancel(true)
-        notificationBuilder.setContentIntent(pendingIntent)
-        val notification = notificationBuilder.build()
-        notification.flags = Notification.DEFAULT_LIGHTS or Notification.FLAG_AUTO_CANCEL
-        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(notificationId, notification)
-    }
+//    // 投稿通知を送信
+//    private fun sendNotification(newMessage: MessageItem) {
+//        val notificationId = SEND_NOTIFICATION_ID
+//        val pendingIntent = PendingIntent.getActivity(
+//            this,
+//            REQUEST_GET_IMAGE,
+//            Intent(this, MainActivity::class.java),
+//            PendingIntent.FLAG_UPDATE_CURRENT
+//        )
+//        val notificationBuilder = NotificationCompat.Builder(this, "channel_1")
+//            .setSmallIcon(R.drawable.ic_notofication)
+//            .setContentTitle(newMessage.userName)
+//            .setContentText(newMessage.postedMessage)
+//            .setAutoCancel(true)
+//        notificationBuilder.setContentIntent(pendingIntent)
+//        val notification = notificationBuilder.build()
+//        notification.flags = Notification.DEFAULT_LIGHTS or Notification.FLAG_AUTO_CANCEL
+//        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+//        notificationManager.notify(notificationId, notification)
+//    }
 
     //　チャットのユーザー情報表示
     private fun setUserContents(holder: MessageHolder, model: MessageItem) {

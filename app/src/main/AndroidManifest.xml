@@ -12,6 +12,12 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+
+        <meta-data android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notofication" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/colorPrimary" />
+
         <activity
             android:name=".SignActivity"
             android:label="@string/title_activity_sign_in"
@@ -28,6 +34,16 @@
 
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".FirebaseMessagingService"
+            android:exported="false"
+            android:directBootAware="true"
+            tools:targetApi="n">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
 <!--        <activity-->
 <!--            android:name="com.google.firebase.auth.internal.FederatedSignInActivity"-->

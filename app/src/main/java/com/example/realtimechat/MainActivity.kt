@@ -25,6 +25,7 @@ import com.firebase.ui.firestore.FirestoreRecyclerOptions
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.tasks.OnCompleteListener
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -35,6 +36,7 @@ import com.google.firebase.dynamiclinks.ktx.dynamicLink
 import com.google.firebase.dynamiclinks.ktx.dynamicLinks
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.iid.FirebaseInstanceId
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
@@ -252,6 +254,57 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         )
     }
 
+    private fun tokenCheck() {
+        db.collection("rooms")
+            .document(userName)
+            .collection("token")
+            .document("id")
+            .get()
+            .addOnSuccessListener { document ->
+                if (document.data.isNullOrEmpty()) {
+                    Log.d(TAG, "tokenCheck is null")
+                    getToken()
+                } else {
+                    val token = document.toObject(TokenItem::class.java)
+                    Log.d(TAG, "tokenCheck: ${token?.tokenId}")
+                }
+            }
+            .addOnFailureListener { exception ->
+                Log.d(TAG, "tokenCheck failed with ", exception)
+                getToken()
+            }
+    }
+
+    private fun getToken() {
+        FirebaseInstanceId.getInstance().instanceId
+            .addOnCompleteListener(OnCompleteListener { task ->
+                if (!task.isSuccessful) {
+                    Log.w(TAG, "getInstanceId failed", task.exception)
+                    return@OnCompleteListener
+                }
+
+                // Get new Instance ID token
+                val token = task.result?.token
+                val msg = getString(R.string.msg_token_fmt, token)
+                Log.d(TAG, msg)
+
+                db.collection("rooms")
+                    .document(userName)
+                    .collection("token")
+                    .document("id")
+                    .set(TokenItem(token))
+                    .addOnCompleteListener {
+                    }
+                    .addOnSuccessListener {
+                        Log.d(TAG, "Token Register Success: $token")
+                    }
+                    .addOnFailureListener {
+                        Log.d(TAG, "Token Register Fail")
+                    }
+
+            })
+    }
+
     // チャットの投稿した文章と画像を表示
     private fun setChatContents(holder: MessageHolder, model: MessageItem) {
         // 投稿文章
@@ -435,6 +488,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         // 招待者とのチャットへ
         receiveInvitation()
+
+        // 通知トークン取得済みかチェック
+        tokenCheck()
     }
 
     // ログインアカウントをナビヘッダーに情報表示

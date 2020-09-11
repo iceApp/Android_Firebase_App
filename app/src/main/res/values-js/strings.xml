@@ -26,6 +26,7 @@
     <!-- 通知-->
     <string name="notification_ticker">新規チャットメッセージがあります!!</string>
     <string name="channel_description">新規にメッセージがあった場合に通知を表示します</string>
+    <string name="msg_token_fmt">InstanceID Token: %s</string>
 
     <!--App Invite -->
     <string name="app_invite_title">「リアルタイムチャット」に招待する</string>
